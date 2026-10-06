@@ -3,6 +3,133 @@ from tkinter import messagebox
 
 
 # ============================================================
+# C / C++ RESERVED KEYWORDS
+# ============================================================
+
+KEYWORDS = {
+    # ---------------- C KEYWORDS ----------------
+    "auto",
+    "break",
+    "case",
+    "char",
+    "const",
+    "continue",
+    "default",
+    "do",
+    "double",
+    "else",
+    "enum",
+    "extern",
+    "float",
+    "for",
+    "goto",
+    "if",
+    "inline",
+    "int",
+    "long",
+    "register",
+    "restrict",
+    "return",
+    "short",
+    "signed",
+    "sizeof",
+    "static",
+    "struct",
+    "switch",
+    "typedef",
+    "union",
+    "unsigned",
+    "void",
+    "volatile",
+    "while",
+    "_Alignas",
+    "_Alignof",
+    "_Atomic",
+    "_Bool",
+    "_Complex",
+    "_Generic",
+    "_Imaginary",
+    "_Noreturn",
+    "_Static_assert",
+    "_Thread_local",
+
+    # ---------------- C++ KEYWORDS ----------------
+    "alignas",
+    "alignof",
+    "and",
+    "and_eq",
+    "asm",
+    "atomic_cancel",
+    "atomic_commit",
+    "atomic_noexcept",
+    "bitand",
+    "bitor",
+    "bool",
+    "catch",
+    "class",
+    "compl",
+    "concept",
+    "const_cast",
+    "consteval",
+    "constexpr",
+    "constinit",
+    "decltype",
+    "delete",
+    "do",
+    "dynamic_cast",
+    "explicit",
+    "export",
+    "extern",
+    "false",
+    "friend",
+    "inline",
+    "mutable",
+    "namespace",
+    "new",
+    "noexcept",
+    "not",
+    "not_eq",
+    "nullptr",
+    "operator",
+    "or",
+    "or_eq",
+    "private",
+    "protected",
+    "public",
+    "reflexpr",
+    "reinterpret_cast",
+    "requires",
+    "static_assert",
+    "static_cast",
+    "synchronized",
+    "template",
+    "this",
+    "thread_local",
+    "throw",
+    "true",
+    "try",
+    "typedef",
+    "typeid",
+    "typename",
+    "using",
+    "virtual",
+    "wchar_t",
+    "xor",
+    "xor_eq",
+
+    # ---------------- MODERN C++ ----------------
+    "char8_t",
+    "char16_t",
+    "char32_t",
+    "co_await",
+    "co_return",
+    "co_yield",
+    "override",
+    "final"
+}
+
+
+# ============================================================
 # TURING MACHINE
 # ============================================================
 
@@ -11,33 +138,62 @@ class TuringMachine:
     def __init__(self, token):
 
         self.token = token
+
+        # Tape contains input + blank symbol
         self.tape = list(token) + ["□"]
 
+        # Head starts at first character
         self.head = 0
+
+        # Initial state
         self.state = "q0"
 
+        # Step counter
         self.step_number = 0
+
+        # Store all transitions
         self.transitions = []
 
+        # Machine completion flag
         self.finished = False
 
-    # --------------------------------------------------------
-    # Check Letter
-    # --------------------------------------------------------
+    # ========================================================
+    # CHECK LETTER
+    # ========================================================
 
     def is_letter(self, ch):
-        return ch.isalpha()
 
-    # --------------------------------------------------------
-    # Check remaining valid character
-    # --------------------------------------------------------
+        # Strict ASCII letters only
+        return (
+            ("A" <= ch <= "Z") or
+            ("a" <= ch <= "z")
+        )
+
+    # ========================================================
+    # CHECK REMAINING VALID CHARACTER
+    # ========================================================
 
     def is_valid_remaining(self, ch):
-        return ch.isalpha() or ch.isdigit() or ch == "_"
 
-    # --------------------------------------------------------
-    # Perform one TM transition
-    # --------------------------------------------------------
+        return (
+            self.is_letter(ch)
+            or
+            ("0" <= ch <= "9")
+            or
+            ch == "_"
+        )
+
+    # ========================================================
+    # CHECK RESERVED KEYWORD
+    # ========================================================
+
+    def is_keyword(self):
+
+        return self.token in KEYWORDS
+
+    # ========================================================
+    # PERFORM ONE TM TRANSITION
+    # ========================================================
 
     def step(self):
 
@@ -47,30 +203,55 @@ class TuringMachine:
         current_symbol = self.tape[self.head]
 
         old_state = self.state
+
         action = ""
+
         movement = "-"
+
+        # ====================================================
+        # KEYWORD CHECK
+        # ====================================================
+
+        # Check only at the beginning.
+        # If complete input is a reserved keyword,
+        # reject it immediately.
+
+        if self.step_number == 0 and self.is_keyword():
+
+            self.state = "q_keyword_reject"
+
+            self.finished = True
+
+            action = "Reserved keyword"
+
+            movement = "-"
 
         # ====================================================
         # STATE q0
         # First character
         # ====================================================
 
-        if self.state == "q0":
+        elif self.state == "q0":
 
+            # First character must be letter or underscore
             if self.is_letter(current_symbol) or current_symbol == "_":
 
                 self.head += 1
+
                 self.state = "q1"
 
                 action = "Valid first character"
+
                 movement = "R"
 
             else:
 
                 self.state = "q_reject"
+
                 self.finished = True
 
                 action = "Invalid first character"
+
                 movement = "-"
 
         # ====================================================
@@ -80,30 +261,44 @@ class TuringMachine:
 
         elif self.state == "q1":
 
+            # ------------------------------------------------
             # Blank reached
+            # ------------------------------------------------
+
             if current_symbol == "□":
 
                 self.state = "q_accept"
+
                 self.finished = True
 
                 action = "End of input"
+
                 movement = "-"
 
+            # ------------------------------------------------
             # Valid character
+            # ------------------------------------------------
+
             elif self.is_valid_remaining(current_symbol):
 
                 self.head += 1
 
                 action = "Valid character"
+
                 movement = "R"
 
+            # ------------------------------------------------
             # Invalid character
+            # ------------------------------------------------
+
             else:
 
                 self.state = "q_reject"
+
                 self.finished = True
 
                 action = "Invalid character"
+
                 movement = "-"
 
         # ====================================================
@@ -113,20 +308,32 @@ class TuringMachine:
         elif self.state == "q_accept":
 
             self.finished = True
+
             return None
 
         # ====================================================
-        # REJECT
+        # NORMAL REJECT
         # ====================================================
 
         elif self.state == "q_reject":
 
             self.finished = True
+
             return None
 
-        # ----------------------------------------------------
-        # Save transition
-        # ----------------------------------------------------
+        # ====================================================
+        # KEYWORD REJECT
+        # ====================================================
+
+        elif self.state == "q_keyword_reject":
+
+            self.finished = True
+
+            return None
+
+        # ====================================================
+        # SAVE TRANSITION
+        # ====================================================
 
         self.step_number += 1
 
@@ -164,9 +371,14 @@ class TuringMachineGUI:
             bg="#eef3f8"
         )
 
+        # Turing Machine object
         self.tm = None
 
+        # Running flag
         self.running = False
+
+        # Scheduled RUN callback
+        self.after_id = None
 
         self.create_widgets()
 
@@ -214,7 +426,7 @@ class TuringMachineGUI:
 
         tk.Label(
             input_frame,
-            text="Enter Identifier:",
+            text="Enter Token:",
             font=("Arial", 14, "bold"),
             bg="#eef3f8"
         ).grid(
@@ -445,17 +657,10 @@ class TuringMachineGUI:
             fill="x"
         )
 
-        columns = (
-            "State",
-            "Read",
-            "Next State",
-            "Move"
-        )
-
         self.transition_table = tk.Listbox(
             table_frame,
-            font=("Consolas", 11),
-            height=10
+            font=("Consolas", 10),
+            height=13
         )
 
         self.transition_table.pack(
@@ -466,19 +671,27 @@ class TuringMachineGUI:
         )
 
         # ----------------------------------------------------
-        # Add transition rules
+        # Transition Rules
         # ----------------------------------------------------
 
         rules = [
-            "q0     Letter       q1          R",
-            "q0     _            q1          R",
-            "q0     Digit        qReject     -",
-            "q0     Special      qReject     -",
-            "q1     Letter       q1          R",
-            "q1     Digit        q1          R",
-            "q1     _            q1          R",
-            "q1     □            qAccept     -",
-            "q1     Special      qReject     -"
+
+            "KEYWORD CHECK",
+            "Any Keyword → qKeywordReject",
+
+            "",
+            "IDENTIFIER CHECK",
+
+            "q0     Letter       q1              R",
+            "q0     _            q1              R",
+            "q0     Digit        qReject         -",
+            "q0     Special      qReject         -",
+
+            "q1     Letter       q1              R",
+            "q1     Digit        q1              R",
+            "q1     _            q1              R",
+            "q1     □            qAccept         -",
+            "q1     Special      qReject         -"
         ]
 
         for rule in rules:
@@ -489,7 +702,7 @@ class TuringMachineGUI:
             )
 
         # ====================================================
-        # TRANSITION HISTORY
+        # EXECUTION HISTORY
         # ====================================================
 
         history_frame = tk.Frame(
@@ -520,7 +733,7 @@ class TuringMachineGUI:
         self.history_list = tk.Listbox(
             history_frame,
             font=("Consolas", 10),
-            height=10
+            height=13
         )
 
         self.history_list.pack(
@@ -536,7 +749,23 @@ class TuringMachineGUI:
 
     def start_machine(self):
 
+        # Stop previous RUN
+        self.running = False
+
+        if self.after_id is not None:
+
+            try:
+                self.root.after_cancel(self.after_id)
+
+            except Exception:
+                pass
+
+            self.after_id = None
+
         token = self.input_entry.get()
+
+        # Remove accidental spaces at beginning/end
+        token = token.strip()
 
         if token == "":
 
@@ -547,19 +776,21 @@ class TuringMachineGUI:
 
             return
 
+        # Create new TM
         self.tm = TuringMachine(token)
 
-        self.running = False
-
+        # Clear history
         self.history_list.delete(
             0,
             tk.END
         )
 
+        # Clear result
         self.result_label.config(
             text=""
         )
 
+        # Reset information
         self.step_label.config(
             text="Step: 0"
         )
@@ -572,6 +803,7 @@ class TuringMachineGUI:
             text="Current State: q0"
         )
 
+        # Show tape
         self.draw_tape()
 
     # ========================================================
@@ -589,14 +821,21 @@ class TuringMachineGUI:
 
         cell_width = 65
 
-        total_width = len(
-            self.tm.tape
-        ) * cell_width
-
-        start_x = max(
-            20,
-            (1100 - total_width) // 2
+        total_width = (
+            len(self.tm.tape) * cell_width
         )
+
+        # Keep tape inside canvas for normal inputs
+        if total_width <= 1100:
+
+            start_x = max(
+                20,
+                (1100 - total_width) // 2
+            )
+
+        else:
+
+            start_x = 20
 
         y1 = 30
         y2 = 85
@@ -608,7 +847,10 @@ class TuringMachineGUI:
             x1 = start_x + i * cell_width
             x2 = x1 + cell_width
 
-            # Highlight tape head
+            # ------------------------------------------------
+            # Highlight current head
+            # ------------------------------------------------
+
             if i == self.tm.head:
 
                 self.tape_canvas.create_rectangle(
@@ -633,12 +875,20 @@ class TuringMachineGUI:
                     width=2
                 )
 
+            # ------------------------------------------------
+            # Symbol
+            # ------------------------------------------------
+
             self.tape_canvas.create_text(
                 (x1 + x2) / 2,
                 (y1 + y2) / 2,
                 text=symbol,
                 font=("Arial", 18, "bold")
             )
+
+            # ------------------------------------------------
+            # Head indicator
+            # ------------------------------------------------
 
             if i == self.tm.head:
 
@@ -676,6 +926,10 @@ class TuringMachineGUI:
         if transition is None:
             return
 
+        # ----------------------------------------------------
+        # Execution history
+        # ----------------------------------------------------
+
         history_text = (
             f"Step {transition['step']} | "
             f"{transition['old_state']} → "
@@ -694,15 +948,26 @@ class TuringMachineGUI:
             tk.END
         )
 
+        # ----------------------------------------------------
+        # Update step
+        # ----------------------------------------------------
+
         self.step_label.config(
             text=f"Step: {transition['step']}"
         )
+
+        # ----------------------------------------------------
+        # Update state
+        # ----------------------------------------------------
 
         self.state_label.config(
             text=f"Current State: {self.tm.state}"
         )
 
-        # Current symbol
+        # ----------------------------------------------------
+        # Update current symbol
+        # ----------------------------------------------------
+
         if self.tm.head < len(self.tm.tape):
 
             current = self.tm.tape[
@@ -719,7 +984,15 @@ class TuringMachineGUI:
                 text="Current Symbol: □"
             )
 
+        # ----------------------------------------------------
+        # Redraw tape
+        # ----------------------------------------------------
+
         self.draw_tape()
+
+        # ----------------------------------------------------
+        # Final result
+        # ----------------------------------------------------
 
         if self.tm.finished:
 
@@ -743,7 +1016,7 @@ class TuringMachineGUI:
 
         if self.running and not self.tm.finished:
 
-            self.root.after(
+            self.after_id = self.root.after(
                 600,
                 self.run_machine
             )
@@ -756,12 +1029,31 @@ class TuringMachineGUI:
 
         self.running = False
 
+        # ----------------------------------------------------
+        # VALID IDENTIFIER
+        # ----------------------------------------------------
+
         if self.tm.state == "q_accept":
 
             self.result_label.config(
                 text="✓ ACCEPTED — VALID IDENTIFIER",
                 fg="#218838"
             )
+
+        # ----------------------------------------------------
+        # RESERVED KEYWORD
+        # ----------------------------------------------------
+
+        elif self.tm.state == "q_keyword_reject":
+
+            self.result_label.config(
+                text="✗ REJECTED — RESERVED KEYWORD",
+                fg="#d9534f"
+            )
+
+        # ----------------------------------------------------
+        # INVALID IDENTIFIER
+        # ----------------------------------------------------
 
         elif self.tm.state == "q_reject":
 
@@ -778,21 +1070,39 @@ class TuringMachineGUI:
 
         self.running = False
 
+        # Cancel scheduled RUN
+        if self.after_id is not None:
+
+            try:
+                self.root.after_cancel(
+                    self.after_id
+                )
+
+            except Exception:
+                pass
+
+            self.after_id = None
+
+        # Remove TM
         self.tm = None
 
+        # Clear tape
         self.tape_canvas.delete(
             "all"
         )
 
+        # Clear history
         self.history_list.delete(
             0,
             tk.END
         )
 
+        # Clear result
         self.result_label.config(
             text=""
         )
 
+        # Reset information
         self.step_label.config(
             text="Step: 0"
         )
